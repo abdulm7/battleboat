@@ -1,4 +1,19 @@
 (function() {
+	function postStats(s) {
+		// e.preventDefault()
+		const res = fetch('/', 
+		{
+			method: 'POST',
+			headers: {
+				"Content-Type": 'application/json'
+			},
+			mode: 'cors',
+			body: JSON.stringify({
+				"stats": s
+			})
+		})
+	}
+	// postStats(e)
 // Battleboat
 // Bill Mei, 2014
 // MIT License
@@ -53,6 +68,19 @@ Game.usedShips = [CONST.UNUSED, CONST.UNUSED, CONST.UNUSED, CONST.UNUSED, CONST.
 CONST.USED = 1;
 CONST.UNUSED = 0;
 
+// Stats per Game to add to 
+// dont need totalshots/totalhits/gamesplayed, will be adding on to current database values
+StatsPerGame = {
+	shotsTaken : 0,
+	shotsHit : 0,
+	// totalShots : 0,
+	// totalHits : 0,
+	gamesPlayed : 0,
+	gamesWon : 0
+	// this.uuid = localStorage.getItem('uuid') || this.createUUID();
+}
+
+
 // Game Statistics
 function Stats(){
 	this.shotsTaken = 0;
@@ -66,13 +94,19 @@ function Stats(){
 		this.skipCurrentGame = true;
 	}
 }
+
 Stats.prototype.incrementShots = function() {
 	this.shotsTaken++;
+	StatsPerGame.shotsTaken++;
 };
 Stats.prototype.hitShot = function() {
 	this.shotsHit++;
+	StatsPerGame.shotsHit++;
 };
 Stats.prototype.wonGame = function() {
+	StatsPerGame.gamesPlayed++;
+	StatsPerGame.gamesWon++;
+
 	this.gamesPlayed++;
 	this.gamesWon++;
 	if (!DEBUG_MODE) {
@@ -80,6 +114,8 @@ Stats.prototype.wonGame = function() {
 	}
 };
 Stats.prototype.lostGame = function() {
+	StatsPerGame.gamesPlayed++;
+
 	this.gamesPlayed++;
 	if (!DEBUG_MODE) {
 		gtag('event', 'gameOver', {'lose': this.uuid});
@@ -99,6 +135,17 @@ Stats.prototype.syncStats = function() {
 		localStorage.setItem('gamesPlayed', this.gamesPlayed);
 		localStorage.setItem('gamesWon', this.gamesWon);
 		localStorage.setItem('uuid', this.uuid);
+		// this is for entire game session
+		// postStats(this)
+		postStats(StatsPerGame)
+		// reset stats per game here
+		StatsPerGame.shotsTaken = 0;
+		StatsPerGame.shotsHit = 0;
+		// StatsPerGame.totalShots = 0;
+		// StatsPerGame.totalHits = 0;
+		StatsPerGame.gamesPlayed = 0;
+		StatsPerGame.gamesWon = 0;
+		
 	} else {
 		this.skipCurrentGame = false;
 	}
@@ -116,6 +163,7 @@ Stats.prototype.syncStats = function() {
 };
 // Updates the sidebar display with the current statistics
 Stats.prototype.updateStatsSidebar = function() {
+	// postStats(e)
 	var elWinPercent = document.getElementById('stats-wins');
 	var elAccuracy = document.getElementById('stats-accuracy');
 	elWinPercent.innerHTML = this.gamesWon + " of " + this.gamesPlayed;
@@ -195,6 +243,8 @@ Game.prototype.checkIfWon = function() {
 		Game.stats.syncStats();
 		Game.stats.updateStatsSidebar();
 		this.showRestartSidebar();
+		// postStats(Game.stats)
+
 	} else if (this.humanFleet.allShipsSunk()) {
 		alert('Yarr! The computer sank all your ships. Try again.');
 		Game.gameOver = true;
@@ -202,6 +252,8 @@ Game.prototype.checkIfWon = function() {
 		Game.stats.syncStats();
 		Game.stats.updateStatsSidebar();
 		this.showRestartSidebar();
+		// postStats(Game.stats)
+
 	}
 };
 // Shoots at the target player on the grid.
